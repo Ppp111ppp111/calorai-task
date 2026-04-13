@@ -70,7 +70,7 @@
         "url": "https://statsigapi.net/v1/check_gate",
         "sendHeaders": true,
         "specifyHeaders": "json",
-        "jsonHeaders": "{\n  \"STATSIG-API-KEY\": \"secret-nwPKH5YT1Qj5JpI7lZFen3smH6HmXY8xpFkdCk1jsAR\",\n  \"Content-Type\": \"application/json\"\n}",
+        "jsonHeaders": "{\n  \"STATSIG-API-KEY\": \"YOUR_STATSIG_SECRET_KEY\",\n  \"Content-Type\": \"application/json\"\n}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{\n  \"user\": {\n    \"userID\": \"{{$json.message.from.id}}\"\n  },\n  \"gateName\": \"onboarding_ab_test\"\n}",

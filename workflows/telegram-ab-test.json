@@ -1,0 +1,248 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "tableId": "=events",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "=={{$json.userId}}"
+            },
+            {
+              "fieldId": "event_name",
+              "fieldValue": "assignment"
+            },
+            {
+              "fieldId": "group",
+              "fieldValue": "={{$json.group}}"
+            },
+            {
+              "fieldId": "step",
+              "fieldValue": "0"
+            }
+          ]
+        }
+      },
+      "name": "Supabase Log Assignment1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1504,
+        976
+      ],
+      "id": "60b7e799-b196-4b6e-ba3d-1e9ded09d95f",
+      "credentials": {
+        "supabaseApi": {
+          "id": "g6BkpJKPVN5wLzyz",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2128,
+        992
+      ],
+      "id": "5ab7d035-2d29-4019-9301-9faf3416ccf1",
+      "webhookId": "a7fc90c8-bb9a-45d0-b508-ad58e7cda642",
+      "credentials": {
+        "telegramApi": {
+          "id": "6r6c6ZwIg1JZjk9s",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://statsigapi.net/v1/check_gate",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"STATSIG-API-KEY\": \"secret-nwPKH5YT1Qj5JpI7lZFen3smH6HmXY8xpFkdCk1jsAR\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"user\": {\n    \"userID\": \"{{$json.message.from.id}}\"\n  },\n  \"gateName\": \"onboarding_ab_test\"\n}",
+        "options": {}
+      },
+      "name": "Statsig Initialize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1904,
+        992
+      ],
+      "id": "5a6c9fce-8f0d-4488-8e78-ac5940c279e0"
+    },
+    {
+      "parameters": {
+        "jsCode": "const group = Math.random() < 0.5 ? \"control\" : \"test\";\n\nreturn [{\n  userId: $node[\"Telegram Trigger\"].json.message.from.id,\n  chatId: $node[\"Telegram Trigger\"].json.message.chat.id,\n  message: $node[\"Telegram Trigger\"].json.message.text,\n  group\n}];"
+      },
+      "name": "Extract Group",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1728,
+        992
+      ],
+      "id": "2f706498-6fa4-4d2a-8bfa-6de09eb242d5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{$json.group}}",
+              "rightValue": "control",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Check Group",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        1008
+      ],
+      "id": "5538e8fd-1d9a-43cf-9958-7a6e15b7cf24"
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Extract Group\"].json.chatId}}",
+        "text": "👋 Welcome to CalorAI!\n\nUse /help to explore features.",
+        "additionalFields": {}
+      },
+      "name": "Control Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        624
+      ],
+      "id": "eee7ed4b-0cd3-4c21-a7c3-d6e6411a04fc",
+      "webhookId": "d9fa0286-f2e5-4da6-8287-1b71c159da9e",
+      "credentials": {
+        "telegramApi": {
+          "id": "6r6c6ZwIg1JZjk9s",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Extract Group\"].json.chatId}}",
+        "text": "👋 Welcome to CalorAI!\n\nStep 1 of 3:\nWhat is your goal?\n\n1️⃣ Lose weight\n2️⃣ Gain muscle\n3️⃣ Eat healthier\n4️⃣ Track nutrition\n\nReply with a number.",
+        "additionalFields": {}
+      },
+      "name": "Test Step 1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        1168
+      ],
+      "id": "0a6abc73-3781-47b5-891f-fa0e6da9b524",
+      "webhookId": "12cfa948-e4dd-4ccb-bff0-ee206d91018b",
+      "credentials": {
+        "telegramApi": {
+          "id": "6r6c6ZwIg1JZjk9s",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Supabase Log Assignment1": {
+      "main": [
+        [
+          {
+            "node": "Check Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Statsig Initialize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Statsig Initialize": {
+      "main": [
+        [
+          {
+            "node": "Extract Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Group": {
+      "main": [
+        [
+          {
+            "node": "Supabase Log Assignment1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Group": {
+      "main": [
+        [
+          {
+            "node": "Control Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Test Step 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d1ee3441-ba6f-4624-bee5-5e8228f9b75b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fd4e7553e60ff2fa4e7a191d1530982b60c33c0a4f07f4eccbba26f30b1b158"
+  },
+  "id": "89Gyxkn1ZNVIj6o1",
+  "tags": []
+}

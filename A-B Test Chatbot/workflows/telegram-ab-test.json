@@ -56,7 +56,7 @@
         992
       ],
       "id": "5ab7d035-2d29-4019-9301-9faf3416ccf1",
-      "webhookId": "a7fc90c8-bb9a-45d0-b508-ad58e7cda642",
+      "webhookId": "YOUR_WEBHOOK_ID_1",
       "credentials": {
         "telegramApi": {
           "id": "6r6c6ZwIg1JZjk9s",
@@ -137,7 +137,7 @@
         624
       ],
       "id": "eee7ed4b-0cd3-4c21-a7c3-d6e6411a04fc",
-      "webhookId": "d9fa0286-f2e5-4da6-8287-1b71c159da9e",
+      "webhookId": "YOUR_WEBHOOK_ID_2",
       "credentials": {
         "telegramApi": {
           "id": "6r6c6ZwIg1JZjk9s",
@@ -159,7 +159,7 @@
         1168
       ],
       "id": "0a6abc73-3781-47b5-891f-fa0e6da9b524",
-      "webhookId": "12cfa948-e4dd-4ccb-bff0-ee206d91018b",
+      "webhookId": "YOUR_WEBHOOK_ID_3",
       "credentials": {
         "telegramApi": {
           "id": "6r6c6ZwIg1JZjk9s",

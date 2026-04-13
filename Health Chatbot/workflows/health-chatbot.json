@@ -1,0 +1,328 @@
+{
+  "name": "Health Chatbot Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{$json.message.text}}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "/log",
+              "operation": "startsWith"
+            },
+            {
+              "value2": "/track",
+              "operation": "startsWith"
+            },
+            {
+              "value2": "/edit",
+              "operation": "startsWith"
+            },
+            {
+              "value2": "/delete",
+              "operation": "startsWith"
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000002",
+      "name": "Command Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text.replace('/log ', '');\n// Extract text (meal) and number (calories)\nconst match = text.match(/(.+?)\\s+(\\d+)$/);\n\nif (match) {\n  return {\n    userId: $json.message.from.id,\n    chatId: $json.message.chat.id,\n    meal: match[1].trim(),\n    calories: parseInt(match[2], 10),\n    valid: true\n  };\n} else {\n  return { valid: false, chatId: $json.message.chat.id };\n}"
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000003",
+      "name": "Parse Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "=meals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{$json.userId}}"
+            },
+            {
+              "fieldId": "meal_name",
+              "fieldValue": "={{$json.meal}}"
+            },
+            {
+              "fieldId": "calories",
+              "fieldValue": "={{$json.calories}}"
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000004",
+      "name": "Insert Meal (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.meal}} ({{$json.calories}} kcal) logged successfully! ✅",
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000005",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "meals",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{$node[\"Telegram Trigger\"].json.message.from.id}}"
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000006",
+      "name": "Get Today's Meals (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let totalCalories = 0;\nlet message = \"🍽️ *Today's Log:*\\n\\n\";\n\nif ($input.all().length === 0) {\n  message = \"You haven't logged any meals today.\";\n} else {\n  for (const item of $input.all()) {\n    const meal = item.json;\n    message += `- ${meal.meal_name}: ${meal.calories} kcal (ID: ${meal.id})\\n`;\n    totalCalories += meal.calories;\n  }\n  message += `\\n🔥 *Total:* ${totalCalories} kcal`;\n}\n\nreturn { \n  text: message,\n  chatId: $node[\"Telegram Trigger\"].json.message.chat.id \n};"
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000007",
+      "name": "Format Track",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.text}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000008",
+      "name": "Send Track Info",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text.replace('/delete ', '');\nreturn {\n  uuid: text.trim(),\n  chatId: $json.message.chat.id\n};"
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000009",
+      "name": "Parse Delete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "meals",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{$json.uuid}}"
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000010",
+      "name": "Delete Meal (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Parse Delete\"].json.chatId}}",
+        "text": "Meal deleted successfully! 🗑️",
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-000000000011",
+      "name": "Delete Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        600
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Command Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command Router": {
+      "main": [
+        [
+          {
+            "node": "Parse Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Today's Meals (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Parse Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Log": {
+      "main": [
+        [
+          {
+            "node": "Insert Meal (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meal (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Meals (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Format Track",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Track": {
+      "main": [
+        [
+          {
+            "node": "Send Track Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Delete": {
+      "main": [
+        [
+          {
+            "node": "Delete Meal (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Meal (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Delete Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b1ee3441-ba6f-4624-bee5-5e8228f9c999"
+}

@@ -24,20 +24,20 @@
         "rules": {
           "rules": [
             {
-              "value2": "/log",
-              "operation": "startsWith"
+              "value2": "^/log(?=\\\\s|$)",
+              "operation": "regex"
             },
             {
-              "value2": "/track",
-              "operation": "startsWith"
+              "value2": "^/track(?=\\\\s|$)",
+              "operation": "regex"
             },
             {
-              "value2": "/edit",
-              "operation": "startsWith"
+              "value2": "^/edit(?=\\\\s|$)",
+              "operation": "regex"
             },
             {
-              "value2": "/delete",
-              "operation": "startsWith"
+              "value2": "^/delete(?=\\\\s|$)",
+              "operation": "regex"
             }
           ]
         }

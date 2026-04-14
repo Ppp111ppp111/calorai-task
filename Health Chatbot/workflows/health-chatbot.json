@@ -247,6 +247,104 @@
         680,
         120
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text.replace(\"/edit \", \"\");const match = text.match(/(^[\\w-]+)\\s+(.+?)\\s+(\\d+)$/);if (match) {return [{json: {valid: true, chatId: $json.message.chat.id, uuid: match[1].trim(), meal: match[2].trim(), calories: parseInt(match[3], 10)}}];} else {return [{json: {valid: false, chatId: $json.message.chat.id}}];}"
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-edit-1",
+      "name": "Parse Edit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-edit-2",
+      "name": "Check Valid Edit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        570,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "meals",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "meal_name",
+              "fieldValue": "={{$json.meal}}"
+            },
+            {
+              "fieldId": "calories",
+              "fieldValue": "={{$json.calories}}"
+            }
+          ]
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{$json.uuid}}"
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-edit-3",
+      "name": "Update Meal (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        680,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Meal updated successfully! ✏️",
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-edit-4",
+      "name": "Edit Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Invalid format! ❌\\nPlease use: /edit <ID> <New Meal Name> <New Calories>\\nExample: /edit 1234-abcd Apple 95",
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-edit-5",
+      "name": "Invalid Edit Msg",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        680,
+        520
+      ]
     }
   ],
   "pinData": {},
@@ -278,7 +376,13 @@
             "index": 0
           }
         ],
-        [],
+        [
+          {
+            "node": "Parse Edit",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Parse Delete",
@@ -366,6 +470,46 @@
         [
           {
             "node": "Invalid Format Msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Edit": {
+      "main": [
+        [
+          {
+            "node": "Check Valid Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Valid Edit": {
+      "main": [
+        [
+          {
+            "node": "Update Meal (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Edit Msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Meal (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Edit Success",
             "type": "main",
             "index": 0
           }

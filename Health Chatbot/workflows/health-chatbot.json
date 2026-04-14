@@ -212,6 +212,41 @@
         900,
         600
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-invalid-1",
+      "name": "Check Valid Log",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        570,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Invalid format! ❌\nPlease use: /log <Meal Name> <Calories>\nExample: /log Chicken Salad 450",
+        "additionalFields": {}
+      },
+      "id": "e22d99d1-0f5a-40a2-b258-invalid-2",
+      "name": "Invalid Format Msg",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        680,
+        120
+      ]
     }
   ],
   "pinData": {},
@@ -257,7 +292,7 @@
       "main": [
         [
           {
-            "node": "Insert Meal (Supabase)",
+            "node": "Check Valid Log",
             "type": "main",
             "index": 0
           }
@@ -313,6 +348,24 @@
         [
           {
             "node": "Delete Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Valid Log": {
+      "main": [
+        [
+          {
+            "node": "Insert Meal (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Format Msg",
             "type": "main",
             "index": 0
           }

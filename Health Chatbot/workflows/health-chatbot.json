@@ -53,7 +53,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const text = $json.message.text.replace('/log ', '');\n// Extract text (meal) and number (calories)\nconst match = text.match(/(.+?)\\s+(\\d+)$/);\n\nif (match) {\n  return {\n    userId: $json.message.from.id,\n    chatId: $json.message.chat.id,\n    meal: match[1].trim(),\n    calories: parseInt(match[2], 10),\n    valid: true\n  };\n} else {\n  return { valid: false, chatId: $json.message.chat.id };\n}"
+        "jsCode": "const text = $json.message.text.replace('/log ', '');\n// Extract text (meal) and number (calories)\nconst match = text.match(/(.+?)\\s+(\\d+)$/);\n\nif (match) {\n  return [{\n    json: {\n      userId: $json.message.from.id,\n      chatId: $json.message.chat.id,\n      meal: match[1].trim(),\n      calories: parseInt(match[2], 10),\n      valid: true\n    }\n  }];\n} else {\n  return [{\n    json: { valid: false, chatId: $json.message.chat.id }\n  }];\n}"
       },
       "id": "e22d99d1-0f5a-40a2-b258-000000000003",
       "name": "Parse Log",
@@ -66,7 +66,7 @@
     },
     {
       "parameters": {
-        "tableId": "=meals",
+        "tableId": "meals",
         "fieldsUi": {
           "fieldValues": [
             {
@@ -95,8 +95,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{$json.chatId}}",
-        "text": "={{$json.meal}} ({{$json.calories}} kcal) logged successfully! ✅",
+        "chatId": "={{$node[\"Parse Log\"].json.chatId}}",
+        "text": "={{$node[\"Parse Log\"].json.meal}} ({{$node[\"Parse Log\"].json.calories}} kcal) logged successfully! ✅",
         "additionalFields": {}
       },
       "id": "e22d99d1-0f5a-40a2-b258-000000000005",
@@ -134,7 +134,7 @@
     },
     {
       "parameters": {
-        "jsCode": "let totalCalories = 0;\nlet message = \"🍽️ *Today's Log:*\\n\\n\";\n\nif ($input.all().length === 0) {\n  message = \"You haven't logged any meals today.\";\n} else {\n  for (const item of $input.all()) {\n    const meal = item.json;\n    message += `- ${meal.meal_name}: ${meal.calories} kcal (ID: ${meal.id})\\n`;\n    totalCalories += meal.calories;\n  }\n  message += `\\n🔥 *Total:* ${totalCalories} kcal`;\n}\n\nreturn { \n  text: message,\n  chatId: $node[\"Telegram Trigger\"].json.message.chat.id \n};"
+        "jsCode": "let totalCalories = 0;\nlet message = \"🍽️ *Today's Log:*\\n\\n\";\n\nif ($input.all().length === 0) {\n  message = \"You haven't logged any meals today.\";\n} else {\n  for (const item of $input.all()) {\n    const meal = item.json;\n    message += `- ${meal.meal_name}: ${meal.calories} kcal (ID: ${meal.id})\\n`;\n    totalCalories += meal.calories;\n  }\n  message += `\\n🔥 *Total:* ${totalCalories} kcal`;\n}\n\nreturn [{\n  json: { \n    text: message,\n    chatId: $node[\"Telegram Trigger\"].json.message.chat.id \n  }\n}];"
       },
       "id": "e22d99d1-0f5a-40a2-b258-000000000007",
       "name": "Format Track",
@@ -164,7 +164,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const text = $json.message.text.replace('/delete ', '');\nreturn {\n  uuid: text.trim(),\n  chatId: $json.message.chat.id\n};"
+        "jsCode": "const text = $json.message.text.replace('/delete ', '');\nreturn [{\n  json: {\n    uuid: text.trim(),\n    chatId: $json.message.chat.id\n  }\n}];"
       },
       "id": "e22d99d1-0f5a-40a2-b258-000000000009",
       "name": "Parse Delete",

@@ -1,5 +1,4 @@
 {
-  "name": "Health Chatbot Workflow",
   "nodes": [
     {
       "parameters": {
@@ -8,14 +7,21 @@
         ],
         "additionalFields": {}
       },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000001",
-      "name": "Telegram Trigger",
+      "id": "0270b669-ba8e-42db-9703-706ccb16d0b0",
+      "name": "Telegram Trigger3",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1,
       "position": [
-        0,
-        300
-      ]
+        -2096,
+        8160
+      ],
+      "webhookId": "4c7b0145-ea86-4772-b84c-0969b550ea8f",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
     },
     {
       "parameters": {
@@ -24,45 +30,332 @@
         "rules": {
           "rules": [
             {
-              "value2": "^/log(?=\\\\s|$)",
-              "operation": "regex"
+              "operation": "startsWith",
+              "value2": "/log"
             },
             {
-              "value2": "^/track(?=\\\\s|$)",
-              "operation": "regex"
+              "operation": "startsWith",
+              "value2": "/track",
+              "output": 1
             },
             {
-              "value2": "^/edit(?=\\\\s|$)",
-              "operation": "regex"
+              "operation": "startsWith",
+              "value2": "/edit",
+              "output": 2
             },
             {
-              "value2": "^/delete(?=\\\\s|$)",
-              "operation": "regex"
+              "operation": "startsWith",
+              "value2": "/delete",
+              "output": 3
             }
           ]
         }
       },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000002",
-      "name": "Command Router",
+      "id": "863e5c1b-496d-4557-a2a5-dbd277a40ded",
+      "name": "Command Router3",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        220,
-        300
+        -1824,
+        8144
       ]
     },
     {
       "parameters": {
-        "jsCode": "const text = $json.message.text.replace('/log ', '');\n// Extract text (meal) and number (calories)\nconst match = text.match(/(.+?)\\s+(\\d+)$/);\n\nif (match) {\n  return [{\n    json: {\n      userId: $json.message.from.id,\n      chatId: $json.message.chat.id,\n      meal: match[1].trim(),\n      calories: parseInt(match[2], 10),\n      valid: true\n    }\n  }];\n} else {\n  return [{\n    json: { valid: false, chatId: $json.message.chat.id }\n  }];\n}"
+        "jsCode": "const text = $json.message.text.replace(/^\\/log\\s*/, \"\");\n// Extract text (meal) and number (calories), ignoring trailing spaces\nconst match = text.match(/(.+?)\\s+(\\d+)\\s*$/);\n\nif (match) {\n  return [{\n    json: {\n      userId: String($json.message.from.id),\n      chatId: String($json.message.chat.id),\n      meal: match[1].trim(),\n      calories: parseInt(match[2], 10),\n      valid: true\n    }\n  }];\n} else {\n  return [{\n    json: { valid: false, chatId: String($json.message.chat.id) }\n  }];\n}"
       },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000003",
-      "name": "Parse Log",
+      "id": "a9d03820-d19a-43fa-8d87-873553e69f02",
+      "name": "Parse Log3",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        460,
-        0
+        -1584,
+        7856
       ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Parse Log3\"].json.chatId}}",
+        "text": "={{$node[\"Parse Log3\"].json.meal}} ({{$node[\"Parse Log3\"].json.calories}} kcal) logged successfully! ✅",
+        "additionalFields": {}
+      },
+      "id": "1ef2ace5-10bb-4e0d-a5f8-82324486f9c0",
+      "name": "Log Success3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        7728
+      ],
+      "webhookId": "243e83a1-fcfd-4167-a363-61cf37a49960",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "meals",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{String($node[\"Telegram Trigger3\"].json.message.from.id)}}"
+            }
+          ]
+        }
+      },
+      "id": "b61f609a-2808-4272-bb1c-9603651e1347",
+      "name": "Get Today's Meals (Supabase)3",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1584,
+        8048
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "g6BkpJKPVN5wLzyz",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let totalCalories = 0;\nlet message = \"🍽️ *Today's Log:*\\n\\n\";\n\nif ($input.all().length === 0) {\n  message = \"You haven't logged any meals today.\";\n} else {\n  for (const item of $input.all()) {\n    const meal = item.json;\n    message += `- ${meal.meal_name}: ${meal.calories} kcal (ID: ${meal.id})\\n`;\n    totalCalories += meal.calories;\n  }\n  message += `\\n🔥 *Total:* ${totalCalories} kcal`;\n}\n\nreturn [{\n  json: { \n    text: message,\n    chatId: $node[\"Telegram Trigger3\"].json.message.chat.id \n  }\n}];"
+      },
+      "id": "14419dd0-f676-4aff-926d-0a04d478c6e2",
+      "name": "Format Track3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        8048
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.text}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "d86848b5-5fc5-43f6-849f-a900b3c20ba5",
+      "name": "Send Track Info3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        8048
+      ],
+      "webhookId": "116bf0a6-1e43-438b-bcc8-9da03e33fea2",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text.replace(/^\\/delete\\s*/, \"\");\nreturn [{\n  json: {\n    uuid: text.trim(),\n    chatId: String($json.message.chat.id)\n  }\n}];"
+      },
+      "id": "ac0e2155-86d3-4ac3-aebc-22fcec8529d1",
+      "name": "Parse Delete3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1584,
+        8448
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Parse Delete3\"].json.chatId}}",
+        "text": "Meal deleted successfully! 🗑️",
+        "additionalFields": {}
+      },
+      "id": "add1273e-b895-4414-840b-046ffbeb0615",
+      "name": "Delete Success3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        8448
+      ],
+      "webhookId": "846a566a-42c2-49d3-b9da-ff9149a14481",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "aa599793-6956-497f-a4a7-6a04f064a386",
+      "name": "Check Valid Log3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1472,
+        7856
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Invalid format! ❌\nPlease use: /log <Meal Name> <Calories>\nExample: /log Chicken Salad 450",
+        "additionalFields": {}
+      },
+      "id": "e163d5ee-898d-41a6-a744-1408890292c7",
+      "name": "Invalid Format Msg3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        7888
+      ],
+      "webhookId": "dd11ddcd-027d-4260-b147-916fd7a178fc",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text.replace(/^\\/edit\\s*/, \"\");\nconst match = text.match(/(^[\\w-]+)\\s+(.+?)\\s+(\\d+)\\s*$/);\nif (match) {\n  return [{\n    json: {\n      valid: true,\n      chatId: String($json.message.chat.id),\n      uuid: match[1].trim(),\n      meal: match[2].trim(),\n      calories: parseInt(match[3], 10)\n    }\n  }];\n} else {\n  return [{\n    json: { valid: false, chatId: String($json.message.chat.id) }\n  }];\n}"
+      },
+      "id": "9c4f7110-b7d9-4993-9aa9-4609ed888784",
+      "name": "Parse Edit3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1584,
+        8256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "df522bdd-cde7-4d96-ac14-03c64b51f8f0",
+      "name": "Check Valid Edit3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        8256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "meals",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{$json.uuid}}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "meal_name",
+              "fieldValue": "={{$json.meal}}"
+            },
+            {
+              "fieldId": "calories",
+              "fieldValue": "={{$json.calories}}"
+            }
+          ]
+        }
+      },
+      "id": "e8bc369b-53d5-45c0-a7dd-fab0bebc388c",
+      "name": "Update Meal (Supabase)3",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1184,
+        8192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "g6BkpJKPVN5wLzyz",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Meal updated successfully! ✏️",
+        "additionalFields": {}
+      },
+      "id": "c034c0bb-5de9-4ba5-8aa7-4171520f37e3",
+      "name": "Edit Success3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        8128
+      ],
+      "webhookId": "de513055-1e4a-4a0a-81d1-6066d60e2822",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "Invalid format! ❌\\nPlease use: /edit <ID> <New Meal Name> <New Calories>\\nExample: /edit 1234-abcd Apple 95",
+        "additionalFields": {}
+      },
+      "id": "eb1179f9-57e1-494f-9fed-f9cea54a8a81",
+      "name": "Invalid Edit Msg3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        8384
+      ],
+      "webhookId": "fc23034a-bab3-4d61-85f6-35ce1ccde18b",
+      "credentials": {
+        "telegramApi": {
+          "id": "yRjS6CaAPKdqIwhr",
+          "name": "Telegram account 2"
+        }
+      }
     },
     {
       "parameters": {
@@ -84,96 +377,20 @@
           ]
         }
       },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000004",
-      "name": "Insert Meal (Supabase)",
+      "id": "3d7f1c1b-92ac-483d-af81-65b6d4fcd0ef",
+      "name": "Insert Meal (Supabase)5",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        680,
-        -20
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$node[\"Parse Log\"].json.chatId}}",
-        "text": "={{$node[\"Parse Log\"].json.meal}} ({{$node[\"Parse Log\"].json.calories}} kcal) logged successfully! ✅",
-        "additionalFields": {}
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000005",
-      "name": "Log Success",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        900,
-        -20
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "meals",
-        "returnAll": true,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "user_id",
-              "condition": "eq",
-              "keyValue": "={{$node[\"Telegram Trigger\"].json.message.from.id}}"
-            }
-          ]
+        -1280,
+        7744
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "g6BkpJKPVN5wLzyz",
+          "name": "Supabase account"
         }
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000006",
-      "name": "Get Today's Meals (Supabase)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        460,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "let totalCalories = 0;\nlet message = \"🍽️ *Today's Log:*\\n\\n\";\n\nif ($input.all().length === 0) {\n  message = \"You haven't logged any meals today.\";\n} else {\n  for (const item of $input.all()) {\n    const meal = item.json;\n    message += `- ${meal.meal_name}: ${meal.calories} kcal (ID: ${meal.id})\\n`;\n    totalCalories += meal.calories;\n  }\n  message += `\\n🔥 *Total:* ${totalCalories} kcal`;\n}\n\nreturn [{\n  json: { \n    text: message,\n    chatId: $node[\"Telegram Trigger\"].json.message.chat.id \n  }\n}];"
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000007",
-      "name": "Format Track",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        680,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chatId}}",
-        "text": "={{$json.text}}",
-        "additionalFields": {
-          "parse_mode": "Markdown"
-        }
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000008",
-      "name": "Send Track Info",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        900,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const text = $json.message.text.replace('/delete ', '');\nreturn [{\n  json: {\n    uuid: text.trim(),\n    chatId: $json.message.chat.id\n  }\n}];"
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000009",
-      "name": "Parse Delete",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        460,
-        600
-      ]
+      }
     },
     {
       "parameters": {
@@ -189,327 +406,184 @@
           ]
         }
       },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000010",
-      "name": "Delete Meal (Supabase)",
+      "id": "0bff6486-1c0a-492f-adc0-1b092faa2755",
+      "name": "Delete Meal (Supabase)1",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        680,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$node[\"Parse Delete\"].json.chatId}}",
-        "text": "Meal deleted successfully! 🗑️",
-        "additionalFields": {}
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-000000000011",
-      "name": "Delete Success",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        900,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.valid}}",
-              "value2": true
-            }
-          ]
+        -1328,
+        8688
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "g6BkpJKPVN5wLzyz",
+          "name": "Supabase account"
         }
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-invalid-1",
-      "name": "Check Valid Log",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        570,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chatId}}",
-        "text": "Invalid format! ❌\nPlease use: /log <Meal Name> <Calories>\nExample: /log Chicken Salad 450",
-        "additionalFields": {}
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-invalid-2",
-      "name": "Invalid Format Msg",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        680,
-        120
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const text = $json.message.text.replace(\"/edit \", \"\");const match = text.match(/(^[\\w-]+)\\s+(.+?)\\s+(\\d+)$/);if (match) {return [{json: {valid: true, chatId: $json.message.chat.id, uuid: match[1].trim(), meal: match[2].trim(), calories: parseInt(match[3], 10)}}];} else {return [{json: {valid: false, chatId: $json.message.chat.id}}];}"
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-edit-1",
-      "name": "Parse Edit",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        460,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.valid}}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-edit-2",
-      "name": "Check Valid Edit",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        570,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "meals",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "meal_name",
-              "fieldValue": "={{$json.meal}}"
-            },
-            {
-              "fieldId": "calories",
-              "fieldValue": "={{$json.calories}}"
-            }
-          ]
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{$json.uuid}}"
-            }
-          ]
-        }
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-edit-3",
-      "name": "Update Meal (Supabase)",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        680,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chatId}}",
-        "text": "Meal updated successfully! ✏️",
-        "additionalFields": {}
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-edit-4",
-      "name": "Edit Success",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        900,
-        380
-      ]
-    },
-    {
-      "parameters": {
-        "chatId": "={{$json.chatId}}",
-        "text": "Invalid format! ❌\\nPlease use: /edit <ID> <New Meal Name> <New Calories>\\nExample: /edit 1234-abcd Apple 95",
-        "additionalFields": {}
-      },
-      "id": "e22d99d1-0f5a-40a2-b258-edit-5",
-      "name": "Invalid Edit Msg",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1,
-      "position": [
-        680,
-        520
-      ]
+      }
     }
   ],
-  "pinData": {},
   "connections": {
-    "Telegram Trigger": {
+    "Telegram Trigger3": {
       "main": [
         [
           {
-            "node": "Command Router",
+            "node": "Command Router3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Command Router": {
+    "Command Router3": {
       "main": [
         [
           {
-            "node": "Parse Log",
+            "node": "Parse Log3",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Get Today's Meals (Supabase)",
+            "node": "Get Today's Meals (Supabase)3",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Parse Edit",
+            "node": "Parse Edit3",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Parse Delete",
+            "node": "Parse Delete3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Log": {
+    "Parse Log3": {
       "main": [
         [
           {
-            "node": "Check Valid Log",
+            "node": "Check Valid Log3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Insert Meal (Supabase)": {
+    "Get Today's Meals (Supabase)3": {
       "main": [
         [
           {
-            "node": "Log Success",
+            "node": "Format Track3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get Today's Meals (Supabase)": {
+    "Format Track3": {
       "main": [
         [
           {
-            "node": "Format Track",
+            "node": "Send Track Info3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Track": {
+    "Parse Delete3": {
       "main": [
         [
           {
-            "node": "Send Track Info",
+            "node": "Delete Meal (Supabase)1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Delete": {
+    "Check Valid Log3": {
       "main": [
         [
           {
-            "node": "Delete Meal (Supabase)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Delete Meal (Supabase)": {
-      "main": [
-        [
-          {
-            "node": "Delete Success",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Valid Log": {
-      "main": [
-        [
-          {
-            "node": "Insert Meal (Supabase)",
+            "node": "Insert Meal (Supabase)5",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Invalid Format Msg",
+            "node": "Invalid Format Msg3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Edit": {
+    "Parse Edit3": {
       "main": [
         [
           {
-            "node": "Check Valid Edit",
+            "node": "Check Valid Edit3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Check Valid Edit": {
+    "Check Valid Edit3": {
       "main": [
         [
           {
-            "node": "Update Meal (Supabase)",
+            "node": "Update Meal (Supabase)3",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Invalid Edit Msg",
+            "node": "Invalid Edit Msg3",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Meal (Supabase)": {
+    "Update Meal (Supabase)3": {
       "main": [
         [
           {
-            "node": "Edit Success",
+            "node": "Edit Success3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Meal (Supabase)5": {
+      "main": [
+        [
+          {
+            "node": "Log Success3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Meal (Supabase)1": {
+      "main": [
+        [
+          {
+            "node": "Delete Success3",
             "type": "main",
             "index": 0
           }
@@ -517,9 +591,9 @@
       ]
     }
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "b1ee3441-ba6f-4624-bee5-5e8228f9c999"
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fd4e7553e60ff2fa4e7a191d1530982b60c33c0a4f07f4eccbba26f30b1b158"
+  }
 }

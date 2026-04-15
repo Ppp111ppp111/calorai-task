@@ -5,3 +5,11 @@ dist/
 build/
 *.log
 .DS_Store
+# n8n workflows & credentials
+credentials.json
+*.sqlite
+
+# Env files
+.env.*
+*.local
+
